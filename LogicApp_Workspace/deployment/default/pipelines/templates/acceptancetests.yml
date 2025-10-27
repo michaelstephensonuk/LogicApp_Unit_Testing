@@ -1,0 +1,124 @@
+# Pipeline Aim
+# We will build the code including test code + function code
+# We will install pre-reqs to be able to run unit tests successfully
+# We will run unit tests on it to make sure it works properly
+# We will then package the code and publish it to the artifact staging directory so that it can be used in a release pipeline
+
+parameters:
+  JobName: 'Logic_App_Run_AcceptanceTests'
+  DependsOnJob: ''
+  ServiceConnectionName: '' # The name of the service connection to use
+  WorkspaceFolder: '' # The path to the folder containing the Logic App workspace
+  AcceptanceTestsPath: '' # The path to the folder containing the unit tests
+  EnvironmentName: '' # The name of the environment for which the tests are being run
+  RunOnlyDeploymentVerificationTests: 'true' # The name of the environment for which the tests are being run
+  KeyVaultName: '' # The name of the Key Vault to use
+
+jobs:
+- job: '${{ parameters.JobName }}'
+  displayName: '🧪 Run Acceptance Tests on Deployed Logic App'
+  dependsOn: ${{ parameters.DependsOnJob }}
+  pool:
+    vmImage: 'windows-latest'
+
+  steps:
+
+    #What: Load Secrets from KeyVault into the pipeline
+    #Why: The secrets will be used when configuring the solution
+    - task: AzureKeyVault@2
+      displayName: '🔐 Download secrets from Key Vault'
+      inputs:
+        azureSubscription: '${{ parameters.ServiceConnectionName }}'  # name of the Azure RM service connection
+        KeyVaultName: '${{ parameters.KeyVaultName }}'                # name of your Key Vault
+        SecretsFilter: '*'                                            # oImport all secrets
+        RunAsPreJob: false                                            # set true if you want to load secrets early
+
+    #What: List the environment variables in the pipeline at this point
+    #Why: When troubleshooting we often need to check which environment variables are set
+    - powershell: |
+        #Displays all of the environment variables for tooubleshooting
+        gci env:* | sort-object name
+      displayName: '🔍 Display Environment Variables'      
+
+    #What: List the files in the build source directory
+    #Why: When troubleshooting this is a common folder we want to recursively check what is in it at various points in the pipeline
+    - powershell: 'Get-ChildItem -Path ${{ parameters.WorkspaceFolder }} -Recurse '
+      workingDirectory: '${{ parameters.WorkspaceFolder }}'
+      displayName: '🔍 List Directory - ${{ parameters.WorkspaceFolder }}'
+
+    #What: Promote service principal variables to the environment
+    #Why: We need these variables to inject into the config file for running the automated tests
+    - task: AzureCLI@2
+      displayName: '🔑 Promote Service Principal Credentials for Testing'
+      inputs:
+        azureSubscription: '${{ parameters.ServiceConnectionName }}' # The devops service connection we will promote variables from
+        scriptType: ps
+        scriptLocation: inlineScript
+        inlineScript: |
+          #This will write variables from the Service Principal to the variables so they can be injected into the config file for running the automated tests
+     
+          Write-Host "##vso[task.setvariable variable=ARM_CLIENT_ID]$($env:servicePrincipalId)"
+          Write-Host "##vso[task.setvariable variable=ARM_CLIENT_SECRET]$($env:servicePrincipalKey)"
+          Write-Host "##vso[task.setvariable variable=ARM_TENANT_ID]$($env:tenantId)"
+     
+        addSpnToEnvironment: true
+        workingDirectory: '$(Build.ArtifactStagingDirectory)'
+
+    #What: Replace tokens in the appsettings.json file so we can configure it for the target deployment environment
+    #Why: We need to replace the tokens in the acceptance tests have info to connect to the Logic App
+    - task: replacetokens@6
+      displayName: '🔄 Replace Tokens in AppSettings File'      
+      inputs:
+        sources: '${{ parameters.AcceptanceTestsPath }}/appsettings.template.json'
+        encoding: 'auto'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        tokenPrefix: '#{'
+        tokenSuffix: '}#'
+
+    #What: Install .NET SDK
+    #Why: We need this to build the solution and run the tests
+    - task: UseDotNet@2
+      displayName: '🛠️ Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '$(DotNet_Version_To_Install)'
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+
+
+    #What: Build the solution
+    #Why: We need to build the solution so we can run the tests later
+    - task: DotNetCoreCLI@2
+      displayName: '🔨 Build the solution'
+      inputs:
+        command: 'build'
+        workingDirectory: '${{ parameters.AcceptanceTestsPath }}'
+        projects: '**/*.csproj'
+
+    #What: Run DeploymentVerification tests
+    #Why: The tests which match the filter DeploymentVerification will be ran to verify the deployment of the Logic App
+    - task: DotNetCoreCLI@2
+      displayName: '🧪 Run Deployment Verification Tests'
+      enabled: true
+      inputs:
+        command: 'test'
+        publishTestResults: true
+        testRunTitle: '$(BUILD.DEFINITIONNAME) Deployment Verification Tests ${{ parameters.EnvironmentName }}'
+        workingDirectory: '${{ parameters.AcceptanceTestsPath }}'
+        arguments: '--logger:trx --verbosity normal --filter "TestCategory=DeploymentVerification"'
+
+    #What: Run ALL acceptance tests
+    #Why: These tests will be ran against the functions runtime on the local machine
+    - task: DotNetCoreCLI@2
+      displayName: '🧪 Run Acceptance Tests'
+      enabled: true
+      condition: eq('${{ parameters.RunOnlyDeploymentVerificationTests }}', false) # Run this step if we want the full battery of acceptance tests ran, this will often be in an environment like a dev or build environment rather than a full end to end UAT environment
+      inputs:
+        command: 'test'
+        publishTestResults: true
+        testRunTitle: '$(BUILD.DEFINITIONNAME) Acceptance Tests ${{ parameters.EnvironmentName }}'
+        workingDirectory: '${{ parameters.AcceptanceTestsPath }}'
+        arguments: '--logger:trx --verbosity normal'
+
+    

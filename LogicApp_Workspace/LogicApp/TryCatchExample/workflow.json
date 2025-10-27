@@ -1,0 +1,86 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Scope_-_Try": {
+                "type": "Scope",
+                "actions": {
+                    "HTTP_-_Get_from_Google": {
+                        "type": "Http",
+                        "inputs": {
+                            "uri": "https://www.google.com/",
+                            "method": "GET",
+                            "retryPolicy": {
+                                "type": "none"
+                            }
+                        },
+                        "runtimeConfiguration": {
+                            "contentTransfer": {
+                                "transferMode": "Chunked"
+                            }
+                        }
+                    },
+                    "Compose_-_called_google_successfully": {
+                        "type": "Compose",
+                        "inputs": "Called google successfully\nResponse = @{outputs('HTTP_-_Get_from_Google')?['statusCode']}",
+                        "runAfter": {
+                            "HTTP_-_Get_from_Google": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Response": {
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "statusCode": 200,
+                            "body": "@outputs('Compose_-_called_google_successfully')"
+                        },
+                        "runAfter": {
+                            "Compose_-_called_google_successfully": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {}
+            },
+            "Scope_-_Catch": {
+                "type": "Scope",
+                "actions": {
+                    "Compose_-_Error_Message": {
+                        "type": "Compose",
+                        "inputs": "There was an error so the catch block was executed"
+                    },
+                    "Response_-_Error": {
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "statusCode": 500,
+                            "body": "@outputs('Compose_-_Error_Message')"
+                        },
+                        "runAfter": {
+                            "Compose_-_Error_Message": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Scope_-_Try": [
+                        "FAILED"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http"
+            }
+        }
+    },
+    "kind": "Stateful"
+}

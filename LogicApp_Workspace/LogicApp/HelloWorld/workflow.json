@@ -1,0 +1,50 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "Call_a_local_function_in_this_logic_app": {
+        "type": "InvokeFunction",
+        "inputs": {
+          "functionName": "LogicAppFunctions",
+          "parameters": {
+            "zipCode": 85396,
+            "temperatureScale": "Celsius"
+          }
+        },
+        "runAfter": {}
+      },
+      "Response": {
+        "type": "Response",
+        "kind": "http",
+        "inputs": {
+          "statusCode": 200,
+          "body": "@body('Call_a_local_function_in_this_logic_app')"
+        },
+        "runAfter": {
+          "Call_a_local_function_in_this_logic_app": [
+            "Succeeded"
+          ]
+        }
+      }
+    },
+    "triggers": {
+      "When_a_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {}
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "metadata": {
+      "IaCMetadata": {
+        "IaCGenerationDate": "2025-07-12T17:09:14.830Z",
+        "IaCWorkflowCorrelationId": "676840ac-a7f4-48a7-a54f-e969e2a2fb27",
+        "LogicAppsExtensionVersion": "5.117.6",
+        "LogicAppsPinnedBundle": false,
+        "LogicAppsCurrentBundleVersion": "1.127.24"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

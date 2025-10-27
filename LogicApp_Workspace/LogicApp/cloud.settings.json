@@ -1,0 +1,25 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_INPROC_NET8_ENABLED": "1",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "APP_KIND": "workflowapp",
+    "AzureWebJobsFeatureFlags": "EnableMultiLanguageWorker",
+    "WORKFLOWS_TENANT_ID": "[TODO-Add-Subscription-ID]",
+    "WORKFLOWS_SUBSCRIPTION_ID": "[TODO-Add-Tenant-ID]",
+    "WORKFLOWS_RESOURCE_GROUP_NAME": "[TODO-Add-Resource-Group-Name]",
+    "WORKFLOWS_LOCATION_NAME": "northeurope",
+    "WORKFLOWS_MANAGEMENT_BASE_URI": "https://management.azure.com/",
+    "Azure_Open_AI_GPT_EndPoint": "https://[TODO-Add-LogicApp-Name]-openai.openai.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview",
+    "Azure_Open_AI_GPT_Key": "[TODO-Add-Open-AI-Key]",
+    "agent_openAIEndpoint": "https://[TODO-Add-LogicApp-Name]-openai.openai.azure.com/",
+    "agent_openAIKey": "[TODO-Add-Open-AI-Key]",
+    "AzureCosmosDB_connectionString": "",
+    "AzureBlob_connectionString": ""
+  }
+}
+
+
+
+
+

@@ -1,0 +1,56 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Call_Order_Processor": {
+                "type": "Workflow",
+                "inputs": {
+                    "host": {
+                        "workflow": {
+                            "id": "Order_Processor"
+                        }
+                    },
+                    "body": "@outputs('Compose_-_Message_Body')"
+                },
+                "runAfter": {
+                    "Compose_-_Message_Body": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Compose_-_Message_Body": {
+                "type": "Compose",
+                "inputs": "@triggerBody()?['contentData']",
+                "runAfter": {},
+                "trackedProperties": {
+                    "orderId": "@{triggerBody()?['contentData']?['orderId']}",
+                    "testProperty": "testProperty"
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_messages_are_available_in_a_queue": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "queueName": "ms-sample-order-web-ui-@{parameters('environment_name')}",
+                        "isSessionsEnabled": false,
+                        "maxMessageBatchSize": 1
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "serviceBus",
+                        "operationId": "receiveQueueMessages",
+                        "serviceProviderId": "/serviceProviders/serviceBus"
+                    }
+                },
+                "trackedProperties": {
+                    "order_id": "@triggerOutputs()?['body']?['content']?['orderId']"
+                },
+                "splitOn": "@triggerOutputs()?['body']"
+            }
+        }
+    },
+    "kind": "Stateful"
+}

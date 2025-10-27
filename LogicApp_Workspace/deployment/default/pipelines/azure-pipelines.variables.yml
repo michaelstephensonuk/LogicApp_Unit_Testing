@@ -1,0 +1,29 @@
+variables:
+
+  # The name of the folder your solution is in within the repo
+  RepoFolder: 'LogicApp_Demo_Solution'
+
+  # The path to the folder containing the Logic App workspace
+  WorkspaceFolder: '$(System.DefaultWorkingDirectory)/$(RepoFolder)/LogicApp_Workspace'
+
+  # The path to the folder containing the Logic App workspace
+  LogicAppFolder: '$(System.DefaultWorkingDirectory)/$(RepoFolder)/LogicApp_Workspace/LogicApp'
+
+  # The path to the folder containing the unit tests which are run against the Logic App before it is deployed
+  LogicAppUnitTestsPath: '$(WorkspaceFolder)/Tests/LogicApp'
+
+  # The path to the folder containing the unit tests which are run against the Logic App before it is deployed
+  FunctionsUnitTestsPath: '$(WorkspaceFolder)/Tests/LogicAppFunctions.Tests'
+
+  # The path to the folder containing the acceptance tests which are run against the deployed Logic App
+  AcceptanceTestsPath: '$(WorkspaceFolder)/Tests/AcceptanceTests'
+
+  # The name of the Logic App - Note an environment suffix will be added to this for each of the different environments
+  LogicAppName: '[TODO-Add-LogicApp-Name]'
+
+  # The name of the resource group where the Logic App will be deployed - Note an environment suffix will be added to this for each of the different environments
+  ResourceGroupName: '[TODO-Add-Resource-Group-Name]'
+
+  # The version of .NET to install
+  DotNet_Version_To_Install: '8.0.303'
+

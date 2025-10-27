@@ -1,0 +1,123 @@
+{
+  "triggerMocks": {
+    "When_a_HTTP_request_is_received": {
+      "name": "When_a_HTTP_request_is_received",
+      "status": "Succeeded",
+      "outputs": {
+        "headers": {
+          "Accept": "*/*",
+          "Connection": "keep-alive",
+          "Host": "localhost:7071",
+          "User-Agent": "PostmanRuntime/7.44.1",
+          "Accept-Encoding": "gzip,deflate,br",
+          "Cache-Control": "no-cache",
+          "Postman-Token": "a6b8135e-3558-467e-ae09-309b4b03f3d6",
+          "Content-Type": "application/json",
+          "Content-Length": "1006"
+        },
+        "body": {
+          "orderId": "ORD-20250724-001",
+          "orderDate": "2025-07-24T15:30:00Z",
+          "customer": {
+            "customerId": "CUST-12345",
+            "name": "Mike Stephenson",
+            "email": "mike@example.com",
+            "phone": "+44-7000-000000",
+            "shippingAddress": {
+              "line1": "123 High Street",
+              "line2": "",
+              "city": "London",
+              "postcode": "W1A 1AA",
+              "country": "UK"
+            }
+          },
+          "items": [
+            {
+              "productId": "SKU-001",
+              "name": "Wireless Mouse",
+              "quantity": 2,
+              "unitPrice": 15.99,
+              "totalPrice": 31.98
+            },
+            {
+              "productId": "SKU-002",
+              "name": "Keyboard",
+              "quantity": 1,
+              "unitPrice": 45.0,
+              "totalPrice": 45.0
+            }
+          ],
+          "payment": {
+            "method": "Credit Card",
+            "transactionId": "TXN-7890",
+            "paid": true,
+            "totalAmount": 76.98,
+            "currency": "GBP"
+          },
+          "status": "Processing",
+          "delivery": {
+            "method": "Standard Shipping",
+            "expectedDeliveryDate": "2025-07-27"
+          }
+        }
+      }
+    }
+  },
+  "actionMocks": {
+    "Agent_Process_Order": {
+      "name": "Agent_Process_Order",
+      "status": "Succeeded",
+      "outputs": {
+        "statusCode": 200,
+        "headers": {
+          "x-ms-workflow-run-id": "08584478620502680933833071938CU00",
+          "x-ms-correlation-id": "c71812e9-69a9-4a61-840d-ebfc19b05e30",
+          "x-ms-client-tracking-id": "08584478620532566051821516158CU00",
+          "x-ms-trigger-history-name": "08584478620502680933833071938CU00",
+          "x-ms-workflow-system-id": "/scaleunits/prod-00/workflows/31106dfdfb634587a7b274dac3a450e9",
+          "x-ms-workflow-id": "31106dfdfb634587a7b274dac3a450e9",
+          "x-ms-workflow-version": "08584478620574759541",
+          "x-ms-workflow-name": "Order_DecisionMaker",
+          "x-ms-tracking-id": "6cf05dad-ce4c-4932-bd1c-b1e7a7e24425",
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Length": "571"
+        },
+        "body": "{\n  \"is_vip\": false,\n  \"description\": \"Although the customer has a history of several successful and issue-free orders across a wide range of electronics, their customer value indicator is very low at 8%. They have ordered occasionally over the years but do not exhibit high frequency or high total value typical of VIPs. The orders are generally small-to-medium in value and there is no evidence of exceptionally high spend, frequent bulk orders, or other behaviors that would override the low customer value score. Therefore, the customer is not classified as a VIP.\"\n}"
+      }
+    },
+    "Upload_blob_to_storage_container_based_on_a_URI": {
+      "name": "Upload_blob_to_storage_container_based_on_a_URI",
+      "status": "Succeeded",
+      "outputs": {
+        "statusCode": "OK",
+        "body": {
+          "properties": {
+            "blobName": "95347dd9-1c7c-4058-b3d4-0d0c342cd697.json",
+            "blobPath": "95347dd9-1c7c-4058-b3d4-0d0c342cd697.json",
+            "blobFullPathWithContainer": "/orders/95347dd9-1c7c-4058-b3d4-0d0c342cd697.json",
+            "appendBlobCommittedBlockCount": 0,
+            "blobTierInferred": true,
+            "blobTierLastModifiedTime": "2025-07-28T23:20:48+00:00",
+            "blobType": "Block",
+            "contentMD5": "aLW7382Q12MwqeQ8u17Mkg==",
+            "contentType": "application/json; charset=utf-8",
+            "created": "2025-07-28T23:20:48+00:00",
+            "creationTime": "2025-07-28T23:20:48+00:00",
+            "eTag": "\"0x8DDCE2D6330C6CD\"",
+            "isIncrementalCopy": false,
+            "isServerEncrypted": true,
+            "lastModified": "2025-07-28T23:20:48+00:00",
+            "leaseDuration": "Infinite",
+            "leaseState": "Available",
+            "leaseStatus": "Unlocked",
+            "length": 700,
+            "pageBlobSequenceNumber": 0,
+            "premiumPageBlobTier": "Hot",
+            "standardBlobTier": "Hot"
+          },
+          "metadata": {}
+        }
+      }
+    }
+  }
+}

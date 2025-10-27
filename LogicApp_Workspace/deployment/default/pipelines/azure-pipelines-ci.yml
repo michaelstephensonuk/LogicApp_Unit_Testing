@@ -1,0 +1,39 @@
+# Pipeline Aim
+# 1. Compile the code
+# 2. Run unit tests
+# 3. Package the code and publish it to the artifact staging directory so that it can be used in a release pipeline
+
+trigger: none
+
+#trigger:
+#  branches:
+#    include:
+#      - master # master or main or a branch
+#  paths:
+#     include: 
+#     - LogicApp_Demo_Solution # This stops the build firing on changes to other folders in the repo.  Note: You need to change this to the folder your solution is in
+    
+name: 1.0.$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- template: azure-pipelines.variables.yml
+- template: azure-pipelines.variables.dev.yml
+
+stages:
+- stage: Build_UnitTest_Package
+  displayName: '🔨 Build, Unit Test and Package Logic App'
+  jobs:
+    - template: templates/build.yml
+      parameters:
+        buildConfiguration: 'Release'
+        projects: '**/*.csproj'
+        RepoFolder: '$(RepoFolder)'  # The name of the folder your solution is in within the repo
+        WorkspaceFolder: '$(WorkspaceFolder)' # The path to the folder containing the Logic App workspace
+        LogicAppFolder: '$(LogicAppFolder)' # The path to the folder containing the Logic App workspace        
+        FunctionUnitTestsPath: '$(FunctionsUnitTestsPath)' # The path to the folder containing the unit tests for the functions
+        LogicAppUnitTestsPath: '$(LogicAppUnitTestsPath)' # The path to the folder containing the unit tests for the Logic App
+        LogicAppName: '$(LogicAppName)' # The name of the Logic App
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection used in Azure DevOps to connect to the Azure subscription
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+

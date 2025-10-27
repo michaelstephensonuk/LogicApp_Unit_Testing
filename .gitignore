@@ -1,0 +1,75 @@
+# Build results
+bin/
+obj/
+out/
+project.lock.json
+project.fragment.lock.json
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio files
+.vs/
+
+# ASP.NET temporary files
+*.Publish.xml
+*.dbmdl
+*.bak
+*.orig
+
+# Logic App Standard runtime files
+*.log
+*.tmp
+*.dmp
+
+# Logs
+*.log
+LogFiles/
+
+# Deployment packages
+*.zip
+*.publish.xml
+*.deployment
+
+# Node.js related (used sometimes in Logic App projects for tooling)
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnp.*
+.pnpm-debug.log
+
+
+# DotNet core
+*.deps.json
+*.runtimeconfig.json
+
+# Test results
+TestResults/
+*.coverage
+*.coveragexml
+*.testsettings
+*.vsmdi
+*.trx
+
+
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+*.nuspec
+
+
+
+# Exclude Azurite Files (note - https://github.com/Azure/Azurite/pull/1061)
+__azurite_db_blob_extent__.json
+__azurite_db_blob__.json
+__azurite_db_queue__.json
+__azurite_db_table__.json
+__azurite_db_queue_extent__.json
+__blobstorage__
+__queuestorage__

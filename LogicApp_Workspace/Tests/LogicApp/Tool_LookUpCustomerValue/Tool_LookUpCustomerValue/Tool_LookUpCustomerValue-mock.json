@@ -1,0 +1,33 @@
+{
+  "triggerMocks": {
+    "When_a_HTTP_request_is_received": {
+      "name": "When_a_HTTP_request_is_received",
+      "status": "Succeeded",
+      "outputs": {
+        "headers": {
+          "Accept-Language": "en-GB",
+          "User-Agent": "azure-logic-apps/1.0,(workflow 31106dfdfb634587a7b274dac3a450e9; version 08584478620574759541)",
+          "x-ms-workflow-id": "31106dfdfb634587a7b274dac3a450e9",
+          "x-ms-workflow-version": "08584478620574759541",
+          "x-ms-workflow-name": "Order_DecisionMaker",
+          "x-ms-workflow-system-id": "/scaleunits/prod-00/workflows/31106dfdfb634587a7b274dac3a450e9",
+          "x-ms-workflow-run-id": "08584478620502680933833071938CU00",
+          "x-ms-workflow-run-tracking-id": "c71812e9-69a9-4a61-840d-ebfc19b05e30",
+          "x-ms-workflow-operation-name": "Get_customer_value",
+          "x-ms-workflow-repeatitem-scope-name": "Default_Agent",
+          "x-ms-workflow-repeatitem-index": "0",
+          "x-ms-tracking-id": "a8cd8a6b-3edc-4d14-855b-8dafb4fec9e1",
+          "x-ms-correlation-id": "a8cd8a6b-3edc-4d14-855b-8dafb4fec9e1",
+          "x-ms-client-request-id": "a8cd8a6b-3edc-4d14-855b-8dafb4fec9e1",
+          "x-ms-client-tracking-id": "08584478620532566051821516158CU00",
+          "x-ms-action-tracking-id": "216a23a2-5de9-414e-8f30-c9d1c1ab0201",
+          "x-ms-activity-vector": "IN.06.IN.04",
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Length": "10"
+        },
+        "body": "CUST-12345"
+      }
+    }
+  },
+  "actionMocks": {}
+}

@@ -1,0 +1,157 @@
+# Pipeline Aim
+# We will build the code including test code + function code
+# We will install pre-reqs to be able to run unit tests successfully
+# We will run unit tests on it to make sure it works properly
+# We will then package the code and publish it to the artifact staging directory so that it can be used in a release pipeline
+
+parameters:
+  RepoFolder: ''  # The name of the folder your solution is in within the repo
+  WorkspaceFolder: '' # The path to the folder containing the Logic App workspace
+  LogicAppFolder: '' # The path to the folder containing the Logic App workspace
+  UnitTestsPath: '' # The path to the folder containing the unit tests  
+  FunctionUnitTestsPath: '' # The path to the folder containing the unit tests for the functions
+  LogicAppUnitTestsPath: '' # The path to the folder containing the unit tests for the Logic App
+  LogicAppName: '' # The name of the Logic App
+  ServiceConnectionName: '' # The service connection used in Azure DevOps to connect to the Azure subscription
+  KeyVaultName: '' # The name of the Key Vault to use
+
+
+jobs:
+- job: Logic_App_Build_And_UnitTest_And_Package
+  displayName: '🔨 Build, Run Unit Tests and Package Logic App'
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+
+    #What: Load Secrets from KeyVault into the pipeline
+    #Why: The secrets will be used when configuring the solution
+    - task: AzureKeyVault@2
+      displayName: '🔐 Download secrets from Key Vault'
+      inputs:
+        azureSubscription: '${{ parameters.ServiceConnectionName }}'  # name of the Azure RM service connection
+        KeyVaultName: '${{ parameters.KeyVaultName }}'                # name of your Key Vault
+        SecretsFilter: '*'                                            # oImport all secrets
+        RunAsPreJob: false                                            # set true if you want to load secrets early
+
+    #What: List the environment variables in the pipeline at this point
+    #Why: When troubleshooting we often need to check which environment variables are set
+    - powershell: |
+        #Displays all of the environment variables for tooubleshooting
+        gci env:* | sort-object name
+      displayName: '🔍 Display Environment Variables'
+
+    #What: List the files in the build source directory
+    #Why: When troubleshooting this is a common folder we want to recursively check what is in it at various points in the pipeline
+    - powershell: 'Get-ChildItem -Path ${{ parameters.WorkspaceFolder }} -Recurse '
+      workingDirectory: '${{ parameters.WorkspaceFolder }}'
+      displayName: '🔍 List Directory - ${{ parameters.WorkspaceFolder }}'
+
+
+     #What: Install .NET SDK 8
+    #Why: We need this to build the solution and run the tests
+    - task: UseDotNet@2
+      displayName: '🛠️ Install .NET SDK 8'
+      inputs:
+        packageType: 'sdk'
+        version: '$(DotNet_Version_To_Install)'
+
+
+    #What: Build the solution
+    #Why: We need to build the solution so we can run the tests later
+    - task: DotNetCoreCLI@2
+      displayName: '🔨 Build the solution'
+      inputs:
+        command: 'build'
+        workingDirectory: '${{ parameters.WorkspaceFolder }}'
+        projects: '**/*.csproj'
+
+    #What: Install Azurite
+    #Why: We need this for func.exe to use to simulate storage
+    - task: Npm@1
+      displayName: '🛠️ install Azurite'
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'install azurite -g'
+
+
+    #What: Start Azurite
+    #Why: The logic app running locally will need azurite running for storage for the functions runtime
+    - task: Bash@3
+      displayName: '▶️ Start Azurite'
+      inputs:
+        targetType: 'inline'
+        script: azurite --silent --location c:\azurite --debug c:\azurite\debug.log &
+
+    #What: Install Functions Core Tools
+    #Why: We need this for func.exe to use to test the logic apps
+    #Note: We are installing this after the compilation stage to make sure builds where the compilation fails, will fail quicker
+    - task: Npm@1
+      displayName: '🛠️ Install Functions Core Tools'
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'install azure-functions-core-tools@4 -g --unsafe-perm true'
+
+    #What: Check Azure Functions Core Tools Version
+    #Why: We need to ensure the correct version of the Azure Functions Core Tools is installed
+    - script: |
+        func --version
+      displayName: '🔍 Check Azure Functions Core Tools Version'
+
+    #What: Package the logic app code
+    #Why: We need to package the logic app code so it can be used in a release pipeline
+    #Note: The build id is removed from the artifact so that we have a static name for the artifact zip file
+    - task: AzureLogicAppsStandardBuild@0
+      displayName: '🔨 Azure Logic Apps Standard Build'
+      inputs:
+        sourceFolder: '${{ parameters.LogicAppFolder }}'
+        deploymentFolder: '$(System.DefaultWorkingDirectory)/deployment/${{ parameters.LogicAppName }}/'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/LogicApp.zip'
+        deploymentWorkflowParametersFile: '${{ parameters.WorkspaceFolder }}/deployment/default/workflowparameters/parameters.json'
+
+    #What: Publish the logic app zip artifact
+    #Why: This will allow the logic app to be used in a release pipeline
+    #Note : The artifact name will be set to a fixed value so that it is always a known name in other pipelines
+    - task: PublishPipelineArtifact@1
+      displayName: '🎁 Publish logic app zip artifact'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/LogicApp.zip'
+        artifact: 'LogicApp-Deployment-Artifact'
+        publishLocation: 'pipeline'
+
+    #What: Run logic app unit tests
+    #Why: These tests will be ran against the functions runtime on the local machine
+    - task: DotNetCoreCLI@2
+      displayName: '🧪 Run Logic App Unit Tests'
+      continueOnError: true
+      enabled: true
+      inputs:
+        command: 'test'
+        publishTestResults: true
+        testRunTitle: '$(BUILD.DEFINITIONNAME) Logic App Unit Tests'
+        workingDirectory: '${{ parameters.LogicAppUnitTestsPath }}'
+        arguments: '--logger:trx --verbosity normal'
+
+    #What: Run function unit tests
+    #Why: These tests will be ran against the functions runtime on the local machine
+    - task: DotNetCoreCLI@2
+      displayName: '🧪 Run Functions Unit Tests'
+      continueOnError: true
+      enabled: true
+      inputs:
+        command: 'test'
+        publishTestResults: true
+        testRunTitle: '$(BUILD.DEFINITIONNAME) Functions Unit Tests'
+        workingDirectory: '${{ parameters.FunctionUnitTestsPath }}'
+        arguments: '--logger:trx --verbosity normal'
+
+    
+
+    
+
+    
+   
+
+

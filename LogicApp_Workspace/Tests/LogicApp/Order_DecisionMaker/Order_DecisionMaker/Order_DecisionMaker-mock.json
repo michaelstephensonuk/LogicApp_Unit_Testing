@@ -1,0 +1,75 @@
+{
+  "triggerMocks": {
+    "When_a_HTTP_request_is_received": {
+      "name": "When_a_HTTP_request_is_received",
+      "status": "Succeeded",
+      "outputs": {
+        "headers": {
+          "Accept-Language": "en-GB",
+          "User-Agent": "azure-logic-apps/1.0,(workflow 84838e7b372549179de4e12447bc8628; version 08584478622741685193)",
+          "x-ms-workflow-id": "84838e7b372549179de4e12447bc8628",
+          "x-ms-workflow-version": "08584478622741685193",
+          "x-ms-workflow-name": "Order_Processor",
+          "x-ms-workflow-system-id": "/scaleunits/prod-00/workflows/84838e7b372549179de4e12447bc8628",
+          "x-ms-workflow-run-id": "08584478620532566051821516158CU00",
+          "x-ms-workflow-run-tracking-id": "a56f2330-1c72-42f3-b094-5d499ded1073",
+          "x-ms-workflow-operation-name": "Agent_Process_Order",
+          "x-ms-tracking-id": "073c4dc5-7a2a-438a-a230-9ddd15ec1c69",
+          "x-ms-correlation-id": "073c4dc5-7a2a-438a-a230-9ddd15ec1c69",
+          "x-ms-client-request-id": "073c4dc5-7a2a-438a-a230-9ddd15ec1c69",
+          "x-ms-client-tracking-id": "08584478620532566051821516158CU00",
+          "x-ms-action-tracking-id": "ead2fe74-f742-4384-8479-8a9c33f1d57c",
+          "x-ms-activity-vector": "IN.06",
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Length": "700"
+        },
+        "body": {
+          "orderId": "ORD-20250724-001",
+          "orderDate": "2025-07-24T15:30:00Z",
+          "customer": {
+            "customerId": "CUST-12345",
+            "name": "Mike Stephenson",
+            "email": "mike@example.com",
+            "phone": "+44-7000-000000",
+            "shippingAddress": {
+              "line1": "123 High Street",
+              "line2": "",
+              "city": "London",
+              "postcode": "W1A 1AA",
+              "country": "UK"
+            }
+          },
+          "items": [
+            {
+              "productId": "SKU-001",
+              "name": "Wireless Mouse",
+              "quantity": 2,
+              "unitPrice": 15.99,
+              "totalPrice": 31.98
+            },
+            {
+              "productId": "SKU-002",
+              "name": "Keyboard",
+              "quantity": 1,
+              "unitPrice": 45.0,
+              "totalPrice": 45.0
+            }
+          ],
+          "payment": {
+            "method": "Credit Card",
+            "transactionId": "TXN-7890",
+            "paid": true,
+            "totalAmount": 76.98,
+            "currency": "GBP"
+          },
+          "status": "Processing",
+          "delivery": {
+            "method": "Standard Shipping",
+            "expectedDeliveryDate": "2025-07-27"
+          }
+        }
+      }
+    }
+  },
+  "actionMocks": {}
+}

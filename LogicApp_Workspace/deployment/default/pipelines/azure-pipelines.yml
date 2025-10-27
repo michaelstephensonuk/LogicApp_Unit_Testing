@@ -1,0 +1,211 @@
+# Pipeline Aim
+# 1. Run the deployments into each evnvironment
+# 2. Run the acceptance tests against the deployed Logic App in each environment where appropriate
+# 3. Use the results of the acceptance tests to determine if the deployment was successful or not
+
+trigger: none
+
+name: 1.0.$(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+- template: azure-pipelines.variables.yml
+
+
+stages:
+
+- stage: Build_UnitTest_Package
+  displayName: '🔨 Build, Unit Test and Package Logic App'
+  variables:
+  - template: azure-pipelines.variables.dev.yml
+
+  pool:
+    ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}'
+  
+  jobs:
+    - template: templates/build.yml
+      parameters:
+        buildConfiguration: 'Release'
+        projects: '**/*.csproj'
+        RepoFolder: '$(RepoFolder)'  # The name of the folder your solution is in within the repo
+        WorkspaceFolder: '$(WorkspaceFolder)' # The path to the folder containing the Logic App workspace
+        LogicAppFolder: '$(LogicAppFolder)' # The path to the folder containing the Logic App workspace        
+        FunctionUnitTestsPath: '$(FunctionsUnitTestsPath)' # The path to the folder containing the unit tests for the functions
+        LogicAppUnitTestsPath: '$(LogicAppUnitTestsPath)' # The path to the folder containing the unit tests for the Logic App
+        LogicAppName: '$(LogicAppName)' # The name of the Logic App
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection used in Azure DevOps to connect to the Azure subscription
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+- stage: Deploy_to_Development
+  displayName: '🛠️ - Dev Environment'
+  dependsOn: Build_UnitTest_Package
+  condition: succeeded()
+  variables:
+  - template: azure-pipelines.variables.dev.yml
+
+  pool:
+    ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}'
+
+  jobs:
+    # Get Approval for the deployment from DevOps Environment
+    - deployment: DeployJob
+      displayName: '🙋‍♂️ Get Approval from DevOps Environment'
+      environment: '${{ variables.Environment_DevOps_EnvironmentName }}'  # 👈 THIS triggers approvals and gates in devops via an environment
+      pool:  
+        vmImage: 'windows-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - script: echo "✅ Deployment approved and running in '$(Environment_DevOps_EnvironmentName)' environment"
+
+    # Deploy the infrastructure
+    - template: templates/deploy-infrastructure.yml
+      parameters:
+        JobName: 'Logic_App_Infrastructure_Deployment'
+        DependsOnJob: 'DeployJob'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection used in Azure DevOps to connect to the Azure subscription
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The path to the folder containing the unit tests
+        WorkingDirectory: '$(WorkspaceFolder)/deployment/default/infrastructure' # The path to the Bicep file
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+    # Deploy the Logic App code
+    - template: templates/deploy-logicapp.yml      
+      parameters:
+        JobName: 'Logic_App_Code_Deployment'
+        DependsOnJob: 'Logic_App_Infrastructure_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The service connection used in Azure DevOps to connect to the Azure subscription
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The resource group where the Logic App will be deployed
+        LogicAppName: '$(Environment_LogicAppName)' # The name of the Logic App
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+    
+    # Run the acceptance tests
+    - template: templates/acceptancetests.yml      
+      parameters:
+        JobName: 'Logic_App_Run_AcceptanceTests'
+        DependsOnJob: 'Logic_App_Code_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection to use
+        WorkspaceFolder: '$(WorkspaceFolder)' # The path to the folder containing the Logic App workspace
+        AcceptanceTestsPath: '$(AcceptanceTestsPath)' # The path to the folder containing the unit tests
+        EnvironmentName: '$(Environment_Name)' # The name of the environment for which the tests are being run
+        RunOnlyDeploymentVerificationTests: 'false' # Only run the tests which verify the deployment of the Logic App, not all tests which may be too invasive or require external dependencies
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+- stage: Deploy_to_Test
+  displayName: '🧪 - Test Environment'
+  dependsOn: Deploy_to_Development
+  condition: succeeded()
+  variables:
+  - template: azure-pipelines.variables.test.yml
+    
+  pool:
+    ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}'
+  jobs:
+    # Get Approval for the deployment from DevOps Environment
+    - deployment: DeployJob
+      displayName: '🙋‍♂️ Get Approval from DevOps Environment'
+      environment: '${{ variables.Environment_DevOps_EnvironmentName }}'  # 👈 THIS triggers approvals and gates in devops via an environment
+      pool:  
+        vmImage: 'windows-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - script: echo "✅ Deployment approved and running in '$(Environment_DevOps_EnvironmentName)' environment"
+
+    # Deploy the infrastructure
+    - template: templates/deploy-infrastructure.yml
+      parameters:
+        JobName: 'Logic_App_Infrastructure_Deployment'
+        DependsOnJob: 'DeployJob'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The path to the folder containing the Logic App workspace
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The path to the folder containing the unit tests
+        WorkingDirectory: '$(WorkspaceFolder)/deployment/default/infrastructure' # The path to the Bicep file
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+    # Deploy the Logic App code
+    - template: templates/deploy-logicapp.yml      
+      parameters:
+        JobName: 'Logic_App_Code_Deployment'
+        DependsOnJob: 'Logic_App_Infrastructure_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The service connection used in Azure DevOps to connect to the Azure subscription
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The resource group where the Logic App will be deployed
+        LogicAppName: '$(Environment_LogicAppName)' # The name of the Logic App
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+    
+    # Run the acceptance tests
+    - template: templates/acceptancetests.yml      
+      parameters:
+        JobName: 'Logic_App_Run_AcceptanceTests'
+        DependsOnJob: 'Logic_App_Code_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection to use
+        WorkspaceFolder: '$(WorkspaceFolder)' # The path to the folder containing the Logic App workspace
+        AcceptanceTestsPath: '$(AcceptanceTestsPath)' # The path to the folder containing the unit tests
+        EnvironmentName: '$(Environment_Name)' # The name of the environment for which the tests are being run
+        RunOnlyDeploymentVerificationTests: 'true' # Only run the tests which verify the deployment of the Logic App, not all tests which may be too invasive or require external dependencies
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+- stage: Deploy_to_Prod
+  displayName: '🚀 - Prod Environment'
+  dependsOn: Deploy_to_Test
+  condition: succeeded()
+  variables:
+  - template: azure-pipelines.variables.prod.yml
+    
+  pool:
+    ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}'
+  jobs:
+    # Get Approval for the deployment from DevOps Environment
+    - deployment: DeployJob
+      displayName: '🙋‍♂️ Get Approval from DevOps Environment'
+      environment: '${{ variables.Environment_DevOps_EnvironmentName }}'  # 👈 THIS triggers approvals and gates in devops via an environment
+      pool:  
+        vmImage: 'windows-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - script: echo "✅ Deployment approved and running in '$(Environment_DevOps_EnvironmentName)' environment"
+
+    # Deploy the infrastructure
+    - template: templates/deploy-infrastructure.yml
+      parameters:
+        JobName: 'Logic_App_Infrastructure_Deployment'
+        DependsOnJob: 'DeployJob'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The path to the folder containing the Logic App workspace
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The path to the folder containing the unit tests
+        WorkingDirectory: '$(WorkspaceFolder)/deployment/default/infrastructure' # The path to the Bicep file
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+    # Deploy the Logic App code
+    - template: templates/deploy-logicapp.yml      
+      parameters:
+        JobName: 'Logic_App_Code_Deployment'
+        DependsOnJob: 'Logic_App_Infrastructure_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The service connection used in Azure DevOps to connect to the Azure subscription
+        ResourceGroupName: '$(Environment_ResourceGroupName)' # The resource group where the Logic App will be deployed
+        LogicAppName: '$(Environment_LogicAppName)' # The name of the Logic App
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+    
+    # Run the acceptance tests
+    - template: templates/acceptancetests.yml      
+      parameters:
+        JobName: 'Logic_App_Run_AcceptanceTests'
+        DependsOnJob: 'Logic_App_Code_Deployment'
+        ServiceConnectionName: '${{ variables.Environment_DevOps_ServiceConnection_Name }}' # The name of the service connection to use
+        WorkspaceFolder: '$(WorkspaceFolder)' # The path to the folder containing the Logic App workspace
+        AcceptanceTestsPath: '$(AcceptanceTestsPath)' # The path to the folder containing the unit tests
+        EnvironmentName: '$(Environment_Name)' # The name of the environment for which the tests are being run
+        RunOnlyDeploymentVerificationTests: 'true' # Only run the tests which verify the deployment of the Logic App, not all tests which may be too invasive or require external dependencies
+        KeyVaultName: '$(Environment_KeyVault_Name)' # The name of the Key Vault to use
+
+
+
+    
+
+

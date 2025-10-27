@@ -1,0 +1,10 @@
+using 'infrastructure.bicep'
+
+param name = '#{Environment_LogicAppName}#'
+param location = 'northeurope'
+param hostingPlanResourceId = '#{Environment_LogicAppHostingPlan_ResourceId}#'
+param storageAccountName = '#{Environment_StorageAccountName}#'
+param logAnalyticsWorkspaceName = '#{Environment_LogAnalytics_Name}#'
+param appInsightsWorkspaceName = '#{Environment_ApplicationInsights_Name}#'
+param keyVaultName = '#{Environment_KeyVault_Name}#'
+param keyVaultResourceGroup = '#{Environment_KeyVault_ResourceGroup}#'

@@ -1,0 +1,152 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "@variables('ai_response')"
+                },
+                "runAfter": {
+                    "For_each": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "HTTP_-_Chat_Completion_-_Azure_Open_AI_GPT-4o": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "@parameters('azure_open_ai_endpoint')",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "api-key": "@{parameters('azure_open_ai_key')}"
+                    },
+                    "body": "@outputs('Compose_-_GPT-4io_Request')",
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {
+                    "Compose_-_GPT-4io_Request": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Compose_-_GPT-4io_Request": {
+                "type": "Compose",
+                "inputs": {
+                    "frequency_penalty": 0,
+                    "max_tokens": 8000,
+                    "messages": [
+                        {
+                            "content": "@{triggerBody()?['SystemPrompt']}",
+                            "role": "system"
+                        },
+                        {
+                            "content": "@{triggerBody()?['UserPrompt']}",
+                            "role": "user"
+                        }
+                    ],
+                    "presence_penalty": 0.6,
+                    "temperature": 0.7,
+                    "top_p": 0.9
+                },
+                "runAfter": {
+                    "Initialize_variables": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Parse_JSON_-_AI_Response": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('HTTP_-_Chat_Completion_-_Azure_Open_AI_GPT-4o')",
+                    "schema": {
+                        "properties": {
+                            "choices": {
+                                "items": {
+                                    "properties": {
+                                        "message": {
+                                            "properties": {
+                                                "content": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "HTTP_-_Chat_Completion_-_Azure_Open_AI_GPT-4o": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "For_each": {
+                "type": "foreach",
+                "foreach": "@outputs('Parse_JSON_-_AI_Response')?['body']?['choices']",
+                "actions": {
+                    "Set_variable": {
+                        "type": "SetVariable",
+                        "inputs": {
+                            "name": "ai_response",
+                            "value": "@item()?['message']?['content']"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON_-_AI_Response": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Initialize_variables": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ai_response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {}
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "UserPrompt": {
+                                "type": "string"
+                            },
+                            "SystemPrompt": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

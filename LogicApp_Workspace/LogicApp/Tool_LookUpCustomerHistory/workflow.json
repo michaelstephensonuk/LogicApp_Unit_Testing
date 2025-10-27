@@ -1,0 +1,57 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "@body('Get_Sample_Test_Data')"
+                },
+                "runAfter": {
+                    "Get_Sample_Test_Data": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Get_Sample_Test_Data": {
+                "type": "Workflow",
+                "inputs": {
+                    "host": {
+                        "workflow": {
+                            "id": "Call_AI_Generate_Test_Data"
+                        }
+                    },
+                    "body": {
+                        "UserPrompt": "Can you get the order history for customer @{triggerBody()?['CustomerID']}",
+                        "SystemPrompt": "You are an agent who simulate generating test data for supporting my system integration testing.\n\nI will provide you a customer id and id like you to generate some example notes on previous orders made by this customer.\n\nPlease return the data in a plain text format"
+                    },
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {}
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "CustomerID": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

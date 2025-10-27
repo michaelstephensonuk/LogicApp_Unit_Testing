@@ -1,0 +1,70 @@
+# Pipeline Aim
+# We will download the build artifact from the build pipeline
+# We will deploy the Logic App using the Azure Logic Apps Standard Release task
+
+parameters:
+  JobName: 'Logic_App_Code_Deployment'
+  DependsOnJob: ''
+  ServiceConnectionName: '' # The service connection used in Azure DevOps to connect to the Azure subscription
+  ResourceGroupName: '' # The name of the resource group where the Logic App will be deployed
+  LogicAppName: '' # The name of the Logic App
+  KeyVaultName: '' # The name of the Key Vault to use
+
+
+jobs:
+- job: '${{ parameters.JobName }}'
+  displayName: '🚀 Deploy Logic App Code'
+  dependsOn: ${{ parameters.DependsOnJob }}
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+    
+    #What: Load Secrets from KeyVault into the pipeline
+    #Why: The secrets will be used when configuring the solution
+    - task: AzureKeyVault@2
+      displayName: '🔐 Download secrets from Key Vault'
+      inputs:
+        azureSubscription: '${{ parameters.ServiceConnectionName }}'  # name of the Azure RM service connection
+        KeyVaultName: '${{ parameters.KeyVaultName }}'                # name of your Key Vault
+        SecretsFilter: '*'                                            # oImport all secrets
+        RunAsPreJob: false                                            # set true if you want to load secrets early
+
+    #What: List the environment variables in the pipeline at this point
+    #Why: When troubleshooting we often need to check which environment variables are set
+    - powershell: |
+        #Displays all of the environment variables for tooubleshooting
+        gci env:* | sort-object name
+      displayName: '🔍 Display Environment Variables'
+
+    #What: Download the build artifact
+    #Why: We need the build artifact to deploy the Logic App
+    - task: DownloadPipelineArtifact@2
+      displayName: '📥 Download the Build Artefact'
+      inputs:        
+        downloadType: 'single'
+        path: '$(System.ArtifactsDirectory)/'
+        artifactName: 'LogicApp-Deployment-Artifact'
+
+    #What: List the files in the $(System.ArtifactsDirectory) after the artifact is downloaded
+    #Why: When troubleshooting this is a common folder we want to recursively check what is in it at various points in the pipeline
+    - powershell: 'Get-ChildItem -Path $(System.ArtifactsDirectory) -Recurse '
+      workingDirectory: '$(System.ArtifactsDirectory)'
+      displayName: '🔍 List Directory - $(System.ArtifactsDirectory)'
+
+    #What: Deploy the Logic App
+    #Why: We need to deploy the Logic App to the specified environment
+    - task: AzureLogicAppsStandardRelease@0
+      displayName: '🚀 Deploy Logic App Package'
+      inputs:
+        connectedServiceName: '${{ parameters.ServiceConnectionName }}'
+        appName: '${{ parameters.LogicAppName }}'
+        resourceGroupName: '${{ parameters.ResourceGroupName }}'
+        appSettings: |
+            []
+        package: '$(System.ArtifactsDirectory)/LogicApp.zip'
+
+
+        
+
+    

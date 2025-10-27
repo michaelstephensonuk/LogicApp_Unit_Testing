@@ -1,0 +1,16 @@
+ variables:
+    Environment_Name: 'Prod'
+    Environment_ShortName: 'Prod'
+    Environment_ShortName_Lowercase: 'prod'
+    Environment_DevOps_ServiceConnection_Name: 'LogicApp_Testing_DevOps_ServiceConnection'
+    Environment_DevOps_EnvironmentName: 'Production' # The environment in Azure Devops so we can do approvals if needed
+    Environment_ResourceGroupName: '$(ResourceGroupName)_$(Environment_ShortName)'
+    Environment_LogicAppName: '$(LogicAppName)-$(Environment_ShortName)'
+    Environment_LogicAppHostingPlan_ResourceId: '/subscriptions/[TODO-Add-Tenant-ID]/resourceGroups/Platform_LogicApp_Standard/providers/Microsoft.Web/serverfarms/ms-asp-platform-logicapps-dev'
+    Environment_StorageAccountName: 'bloglogicapptesting$(Environment_ShortName_Lowercase)'
+    Environment_LogAnalytics_Name: '$(LogicAppName)-logs-$(Environment_ShortName_Lowercase)'
+    Environment_ApplicationInsights_Name: '$(LogicAppName)-appinsights-$(Environment_ShortName_Lowercase)'
+    Environment_KeyVault_Name: '[TODO-Add-LogicApp-Name]' # This key vault will normally change by environment
+    Environment_KeyVault_ResourceGroup: '[TODO-Add-Resource-Group-Name]' # This key vault will normally change by environment
+
+

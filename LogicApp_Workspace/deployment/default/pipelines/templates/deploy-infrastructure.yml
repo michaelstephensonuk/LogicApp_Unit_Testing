@@ -1,0 +1,77 @@
+# Pipeline Aim
+# We will download the build artifact from the build pipeline
+# We will deploy the Logic App using the Azure Logic Apps Standard Release task
+
+parameters:
+  JobName: 'Logic_App_Infrastructure_Deployment'
+  DependsOnJob: ''
+  ServiceConnectionName: '' # The path to the folder containing the Logic App workspace
+  ResourceGroupName: '' # The path to the folder containing the unit tests
+  WorkingDirectory: '' # The path to the Bicep file
+  KeyVaultName: '' # The name of the Key Vault to use
+
+jobs:
+- job: '${{ parameters.JobName }}'
+  displayName: '🚀 Deploy Logic App Infrastructure'
+  dependsOn: ${{ parameters.DependsOnJob }}
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+
+    #What: Load Secrets from KeyVault into the pipeline
+    #Why: The secrets will be used when configuring the solution
+    - task: AzureKeyVault@2
+      displayName: '🔐 Download secrets from Key Vault'
+      inputs:
+        azureSubscription: '${{ parameters.ServiceConnectionName }}'  # name of the Azure RM service connection
+        KeyVaultName: '${{ parameters.KeyVaultName }}'                # name of your Key Vault
+        SecretsFilter: '*'                                            # oImport all secrets
+        RunAsPreJob: false                                            # set true if you want to load secrets early
+
+    #What: List the environment variables in the pipeline at this point
+    #Why: When troubleshooting we often need to check which environment variables are set
+    - powershell: |
+        #Displays all of the environment variables for tooubleshooting
+        gci env:* | sort-object name
+      displayName: '🔍 Display Environment Variables'
+
+    #What: Replace tokens in the Bicep parameters file so we can configure it for the target deployment environment
+    #Why: We need to replace the tokens in the Bicep parameters file so it can be used in the deployment
+    - task: replacetokens@6
+      displayName: '🔄 Replace Tokens in Bicep Parameters File'      
+      inputs:
+        sources: '${{ parameters.WorkingDirectory }}/infrastructure.parameters.template.bicepparam'
+        encoding: 'auto'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        tokenPrefix: '#{'
+        tokenSuffix: '}#'
+
+    #What: Show the contents of the Bicep file in the console
+    #Why: This is useful for debugging to ensure the Bicep file has been correctly
+    - powershell: |
+        Write-Host "📄 Contents of infrastructure.parameters.template.bicepparam:"
+        Get-Content infrastructure.parameters.template.bicepparam | ForEach-Object { Write-Host $_ }
+      displayName: '👀 Show Token-Replaced Bicep in Console'
+      workingDirectory: '${{ parameters.WorkingDirectory }}'
+
+    #What: Deploy the Bicep file
+    #Why: We need to deploy the infrastructure for the Logic App
+    - task: AzureCLI@2
+      displayName: '🚀 Deploy Bicep File'      
+      inputs:
+          workingDirectory: '${{ parameters.WorkingDirectory }}'
+          azureSubscription: '${{ parameters.ServiceConnectionName }}'  
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            az deployment group create \
+                --name $(Build.DefinitionName)-$(Build.BuildId) \
+                --resource-group ${{ parameters.resourceGroupName }} \
+                --template-file 'infrastructure.bicep' \
+                --parameters 'infrastructure.parameters.template.bicepparam'
+    
+
+    

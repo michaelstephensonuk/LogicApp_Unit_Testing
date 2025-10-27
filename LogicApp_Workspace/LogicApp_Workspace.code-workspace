@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "name": "LogicApp",
+      "path": "./LogicApp"
+    },
+    {
+      "name": "LogicAppFunctions",
+      "path": "./LogicAppFunctions"
+    },
+    {
+      "name": "Tests",
+      "path": "Tests"
+    },
+    {
+      "name": "deployment",
+      "path": "deployment"
+    }
+  ],
+  "settings": {
+    "azurite.location": "C:\\Users\\micha\\.azurelogicapps\\.azurite",
+    "terminal.integrated.env.windows": {
+      "PATH": "C:\\Users\\micha\\.azurelogicapps\\dependencies\\DotNetSDK;${env:PATH}"
+    },
+    "omnisharp.dotNetCliPaths": [
+      "C:\\Users\\micha\\.azurelogicapps\\dependencies\\DotNetSDK"
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200
+                },
+                "runAfter": {
+                    "Condition_-_Is_Vip": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Agent_Process_Order": {
+                "type": "Workflow",
+                "inputs": {
+                    "host": {
+                        "workflow": {
+                            "id": "Order_DecisionMaker"
+                        }
+                    },
+                    "body": "@triggerBody()",
+                    "retryPolicy": {
+                        "type": "none"
+                    }
+                },
+                "runAfter": {}
+            },
+            "Parse_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Agent_Process_Order')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "is_vip": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Agent_Process_Order": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Condition_-_Is_Vip": {
+                "type": "If",
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Parse_JSON')?['is_vip']",
+                                "@true"
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "Compose_-_Vip_Order": {
+                        "type": "Compose",
+                        "inputs": "Is a vip"
+                    },
+                    "Compose_-_Cosmos_Object": {
+                        "type": "Compose",
+                        "inputs": {
+                            "partitionid": "order",
+                            "id": "@{guid()}",
+                            "data": "@triggerBody()"
+                        },
+                        "runAfter": {
+                            "Compose_-_Vip_Order": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Create_or_update_item": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "databaseId": "my_database",
+                                "containerId": "my_container",
+                                "item": "@outputs('Compose_-_Cosmos_Object')",
+                                "partitionKey": "order",
+                                "isUpsert": true
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "AzureCosmosDB",
+                                "operationId": "CreateOrUpdateDocument",
+                                "serviceProviderId": "/serviceProviders/AzureCosmosDB"
+                            }
+                        },
+                        "runAfter": {
+                            "Compose_-_Cosmos_Object": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Compose_-_Is_not_vip": {
+                            "type": "Compose",
+                            "inputs": "Is not a vip"
+                        },
+                        "Upload_blob_to_storage_container_based_on_a_URI": {
+                            "type": "ServiceProvider",
+                            "inputs": {
+                                "parameters": {
+                                    "blobUri": "orders/@{guid()}.json",
+                                    "content": "@triggerBody()",
+                                    "overrideIfExists": "true"
+                                },
+                                "serviceProviderConfiguration": {
+                                    "connectionName": "AzureBlob",
+                                    "operationId": "uploadBlobFromUri",
+                                    "serviceProviderId": "/serviceProviders/AzureBlob"
+                                }
+                            },
+                            "runAfter": {
+                                "Compose_-_Is_not_vip": [
+                                    "SUCCEEDED"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http"
+            }
+        }
+    },
+    "kind": "Stateful"
+}

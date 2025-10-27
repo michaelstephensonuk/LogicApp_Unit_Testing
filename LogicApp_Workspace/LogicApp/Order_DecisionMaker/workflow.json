@@ -1,0 +1,128 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Default_Agent": {
+                "type": "Agent",
+                "inputs": {
+                    "parameters": {
+                        "agentModelType": "AzureOpenAI",
+                        "deploymentId": "gpt-4.1",
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": "You are an agent who will help me to decide how to process an order.  I would like you to follow the instructions below.\n\n1. Look up the customers order history using the tool provided\n2. Look up the customers value using the tool provided\n3. Decide if you think the customer is a customer who should have special treatment and is a VIP.\n4. Dont just use the customer value indicator, also look at the previous order history to see if the customer makes lots of good orders\n\nReturn a json object in the following structure\n\n{ \"is_vip\": true, \"description\":\"Why you decided is_vip\" } \n\nThe is_vip field is a boolean value\nThe description field is a justification for why you made the decision"
+                            },
+                            {
+                                "role": "user",
+                                "content": "[\n  \"Please evaluate this customers order\n\n@{triggerBody()}\"\n]"
+                            }
+                        ],
+                        "agentModelSettings": {
+                            "agentHistoryReductionSettings": {
+                                "agentHistoryReductionType": "maximumTokenCountReduction",
+                                "maximumTokenCount": 128000
+                            },
+                            "deploymentModelProperties": {
+                                "name": "gpt-4.1",
+                                "format": "OpenAI",
+                                "version": "2025-04-14"
+                            }
+                        }
+                    },
+                    "modelConfigurations": {
+                        "model1": {
+                            "referenceName": "agent"
+                        }
+                    }
+                },
+                "tools": {
+                    "Tool_Get_Customer_History": {
+                        "actions": {
+                            "Get_customer_history": {
+                                "type": "Workflow",
+                                "inputs": {
+                                    "host": {
+                                        "workflow": {
+                                            "id": "Tool_LookUpCustomerHistory"
+                                        }
+                                    },
+                                    "body": {
+                                        "CustomerID": "@agentParameters('customer_id')"
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Get the history of the customers orders",
+                        "agentParameterSchema": {
+                            "type": "object",
+                            "properties": {
+                                "customer_id": {
+                                    "type": "string",
+                                    "description": "The id for the customer"
+                                }
+                            },
+                            "required": [
+                                "customer_id"
+                            ]
+                        }
+                    },
+                    "Tool_Get_customer_value": {
+                        "actions": {
+                            "Get_customer_value": {
+                                "type": "Workflow",
+                                "inputs": {
+                                    "host": {
+                                        "workflow": {
+                                            "id": "Tool_LookUpCustomerValue"
+                                        }
+                                    },
+                                    "body": "@agentParameters('customer_id')"
+                                }
+                            }
+                        },
+                        "description": "Get the value indicator for the customer which returns a % value between 1 and 100",
+                        "agentParameterSchema": {
+                            "type": "object",
+                            "properties": {
+                                "customer_id": {
+                                    "type": "string",
+                                    "description": "The id for the customer"
+                                }
+                            },
+                            "required": [
+                                "customer_id"
+                            ]
+                        }
+                    }
+                },
+                "runAfter": {},
+                "limit": {
+                    "count": 100
+                }
+            },
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "@outputs('Default_Agent')?['lastAssistantMessage']"
+                },
+                "runAfter": {
+                    "Default_Agent": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http"
+            }
+        }
+    },
+    "kind": "Agentic"
+}

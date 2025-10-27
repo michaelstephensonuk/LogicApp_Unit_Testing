@@ -1,0 +1,107 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "actions": {
+            "Condition": {
+                "type": "If",
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@triggerBody()?['direction']",
+                                "left"
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "Compose_-_Left": {
+                        "type": "Compose",
+                        "inputs": "You went left"
+                    },
+                    "Set_variable_-_left": {
+                        "type": "SetVariable",
+                        "inputs": {
+                            "name": "response",
+                            "value": "@{outputs('Compose_-_Left')}"
+                        },
+                        "runAfter": {
+                            "Compose_-_Left": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Compose_-_Right": {
+                            "type": "Compose",
+                            "inputs": "You went right"
+                        },
+                        "Set_variable_-_right": {
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "response",
+                                "value": "@{outputs('Compose_-_Right')}"
+                            },
+                            "runAfter": {
+                                "Compose_-_Right": [
+                                    "SUCCEEDED"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variables": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "Initialize_variables": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "response",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {}
+            },
+            "Response": {
+                "type": "Response",
+                "kind": "Http",
+                "inputs": {
+                    "statusCode": 200,
+                    "body": "@variables('response')"
+                },
+                "runAfter": {
+                    "Condition": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "direction": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}

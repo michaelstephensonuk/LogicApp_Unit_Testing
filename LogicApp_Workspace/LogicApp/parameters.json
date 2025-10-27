@@ -1,0 +1,10 @@
+{
+  "azure_open_ai_endpoint": {
+    "type": "String",
+    "value": "@appsetting('Azure_Open_AI_GPT_Endpoint')"
+  },
+  "azure_open_ai_key": {
+    "type": "String",
+    "value": "@appsetting('Azure_Open_AI_GPT_Key')"
+  }
+}

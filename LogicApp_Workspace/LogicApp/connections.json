@@ -1,0 +1,39 @@
+{
+  "managedApiConnections": {},
+  "agentConnections": {
+    "agent": {
+      "displayName": "azure_open_ai_connection",
+      "authentication": {
+        "type": "Key",
+        "key": "@appsetting('agent_openAIKey')"
+      },
+      "endpoint": "@appsetting('agent_openAIEndpoint')",
+      "resourceId": "/subscriptions/[TODO-Add-Tenant-ID]/resourceGroups/[TODO-Add-Resource-Group-Name]/providers/Microsoft.CognitiveServices/accounts/[TODO-Add-LogicApp-Name]-openai",
+      "type": "model"
+    }
+  },
+  "serviceProviderConnections": {
+    "AzureCosmosDB": {
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureCosmosDB_connectionString')"
+      },
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureCosmosDB"
+      },
+      "displayName": "cosmos_db_connection"
+    },
+    "AzureBlob": {
+      "parameterValues": {
+        "connectionString": "@appsetting('AzureBlob_connectionString')"
+      },
+      "parameterSetName": "connectionString",
+      "serviceProvider": {
+        "id": "/serviceProviders/AzureBlob"
+      },
+      "displayName": "storage_connection"
+    }
+  }
+}
+
+
+
